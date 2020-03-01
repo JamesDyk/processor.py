@@ -354,9 +354,6 @@ class Processor:
             icon_url="https://cdn1.iconfinder.com/data/icons/iconza-circle-social/64/697029-twitter-512.png",
         )
         
-        if attachedPictureType == "photo":
-            self.embed.set_image(url=attachedPictures[0]) # add first picture, if it is a picture, to first embed
-        
 
     def send_message(self, wh_url):
         match = re.search(WH_REGEX, wh_url)
@@ -367,10 +364,11 @@ class Processor:
                 int(match.group("id")), match.group("token"), adapter=RequestsWebhookAdapter()
             )
             try:
-                if self.embed.description != "":
-                    webhook.send( # send tweet
-                        embed=self.embed, content=self.discord_config.get("custom_message", None),
-                        )
+                if attachedPictureType == "photo":
+                    self.embed.set_image(url=attachedPictures[0]) # add first picture, if it is a picture, to first embed
+                webhook.send( # send tweet
+                    embed=self.embed, content=self.discord_config.get("custom_message", None),
+                    )
                 
                 if attachedPictureType == "gif" or attachedPictureType == "video":
                     picEmbed = Embed( # initializing new embed, cause I didn't fine another way to clear the content
