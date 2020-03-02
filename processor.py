@@ -103,6 +103,7 @@ def worth_posting_follow(
 
 def keyword_set_present(keyword_sets, text):
     for keyword_set in keyword_sets:
+        print(keyword_set)
         keyword_present = [keyword.lower() in text.lower() for keyword in keyword_set]
         keyword_set_present = all(keyword_present)
         if keyword_set_present:
@@ -343,11 +344,11 @@ class Processor:
             ),
         )
 
-        self.embed.set_author(
-            name=self.status_tweet["user"]["screen_name"],
-            url="https://twitter.com/" + self.status_tweet["user"]["screen_name"],
-            icon_url=self.status_tweet["user"]["profile_image_url"],
-        )
+#        self.embed.set_author(
+#            name=self.status_tweet["user"]["screen_name"],
+#            url="https://twitter.com/" + self.status_tweet["user"]["screen_name"],
+#            icon_url=self.status_tweet["user"]["profile_image_url"],
+#        )
             
         self.embed.set_footer(
             text="Tweet created on",
@@ -364,6 +365,8 @@ class Processor:
                 int(match.group("id")), match.group("token"), adapter=RequestsWebhookAdapter()
             )
             try:
+                print("pictures found: ", len(attachedPictures))
+                
                 if attachedPictureType == "photo":
                     self.embed.set_image(url=attachedPictures[0]) # add first picture, if it is a picture, to first embed
                 webhook.send( # send tweet
@@ -383,14 +386,22 @@ class Processor:
                         embed=picEmbed,
                         )
                 
-                for attachedPicture in attachedPictures[2:]: # skip first 2 pictures, cause twitter has the first picture attached twice
-                    picEmbed = Embed( # initializing new embed, cause I didn't fine another way to clear the content
-                        colour=self.discord_config.get("Color", random.choice(COLORS)),
-                        )
-                    picEmbed.set_image(url=attachedPicture),
-                    webhook.send( # send pictures
-                        embed=picEmbed,
-                        )
+                if len(attachedPictures) > 1:
+                    if attachedPictures[0] == attachedPictures[1]: #Maybe the first picture is not always attached twice?!?
+                        start = 2
+                    else:
+                        start = 1
+                
+                    for attachedPicture in attachedPictures[start:]: # skip first 2 pictures, cause twitter has the first picture attached twice
+                        picEmbed = Embed( # initializing new embed, cause I didn't fine another way to clear the content
+                            colour=self.discord_config.get("Color", random.choice(COLORS)),
+                            )
+                        picEmbed.set_image(url=attachedPicture),
+                        webhook.send( # send pictures
+                            embed=picEmbed,
+                            )
+                else:
+                    pass
                     
                 attachedPictures.clear()
             except discord.errors.NotFound as error:
