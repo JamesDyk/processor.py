@@ -1,3 +1,6 @@
+# DON'T USE THIS YET
+# There are still bugs while using it with tracked IDs, for whatever reason it works perfectly fine with 
+
 from html import unescape
 import re
 from discord import Webhook, RequestsWebhookAdapter, Embed
