@@ -1,6 +1,3 @@
-# DON'T USE THIS YET
-# There are still bugs while using it with tracked IDs, for whatever reason it works perfectly fine with 
-
 from html import unescape
 import re
 from discord import Webhook, RequestsWebhookAdapter, Embed
@@ -106,7 +103,7 @@ def worth_posting_follow(
 
 def keyword_set_present(keyword_sets, text):
     for keyword_set in keyword_sets:
-        print(keyword_set)
+        print("used keyword: ", keyword_set)
         keyword_present = [keyword.lower() in text.lower() for keyword in keyword_set]
         keyword_set_present = all(keyword_present)
         if keyword_set_present:
@@ -347,6 +344,7 @@ class Processor:
             ),
         )
 
+# I put this part in comments, cause I didn't want it in my feed, feel free to reactivate it, if you want it
 #        self.embed.set_author(
 #            name=self.status_tweet["user"]["screen_name"],
 #            url="https://twitter.com/" + self.status_tweet["user"]["screen_name"],
@@ -358,7 +356,7 @@ class Processor:
             icon_url="https://cdn1.iconfinder.com/data/icons/iconza-circle-social/64/697029-twitter-512.png",
         )
         
-
+        
     def send_message(self, wh_url):
         match = re.search(WH_REGEX, wh_url)
         global attachedPictureType
@@ -370,13 +368,16 @@ class Processor:
             try:
                 print("pictures found: ", len(attachedPictures))
                 
+                # add first picture to the first tweet
                 if attachedPictureType == "photo":
                     self.embed.set_image(url=attachedPictures[0]) # add first picture, if it is a picture, to first embed
+                    
                 webhook.send( # send tweet
                     embed=self.embed, content=self.discord_config.get("custom_message", None),
                     )
                 
-                if attachedPictureType == "gif" or attachedPictureType == "video":
+                # single tweet with a gif or video, generally twitter only allows on of those for a tweet, so this should be enough to cover it
+                if attachedPictureType == "gif" or attachedPictureType == "video": 
                     picEmbed = Embed( # initializing new embed, cause I didn't fine another way to clear the content
                         colour=self.discord_config.get("Color", random.choice(COLORS)),
                         )
@@ -389,8 +390,17 @@ class Processor:
                         embed=picEmbed,
                         )
                 
-                if len(attachedPictures) > 1:
-                    if attachedPictures[0] == attachedPictures[1]: #Maybe the first picture is not always attached twice?!?
+                # check if there are more than 1 different pictures
+                if len(attachedPictures) == 0:
+                    print("no pictures attached")
+                    pass
+                elif len(attachedPictures) == 2 and attachedPictures[0] == attachedPictures[1]:
+                    print("two pictures attached, but they're both the same")
+                    pass
+                else:
+                    # Maybe the first picture is not always attached twice?!?
+                    if attachedPictures[0] == attachedPictures[1]: 
+                        print("first picture attached twice")
                         start = 2
                     else:
                         start = 1
@@ -403,10 +413,8 @@ class Processor:
                         webhook.send( # send pictures
                             embed=picEmbed,
                             )
-                else:
-                    pass
                     
-                attachedPictures.clear()
+                attachedPictures.clear() # clear pictures
             except discord.errors.NotFound as error:
                 print(
                     f"---------Error---------\n"
