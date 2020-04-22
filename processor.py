@@ -3,6 +3,7 @@ import re
 from discord import Webhook, RequestsWebhookAdapter, Embed
 import discord
 import random
+import time
 from datetime import datetime
 
 
@@ -52,8 +53,10 @@ COLORS = [
     0x7C29A6,
 ]
 WH_REGEX = r"discordapp\.com\/api\/webhooks\/(?P<id>\d+)\/(?P<token>.+)"
+
 attachedPictures = []
 attachedPictureType = "empty"
+attachedVideo = "empty"
 
 
 def worth_posting_location(location, coordinates):
@@ -103,9 +106,11 @@ def worth_posting_follow(
 
 def keyword_set_present(keyword_sets, text):
     for keyword_set in keyword_sets:
-        print("used keyword: ", keyword_set)
+        #print("used keyword: ", keyword_set) #dirtydebug
         keyword_present = [keyword.lower() in text.lower() for keyword in keyword_set]
         keyword_set_present = all(keyword_present)
+        #print("text:", text.lower()) #dirtydebug
+        #print("keyword present: ", keyword_set_present) #dirtydebug
         if keyword_set_present:
             return True
     return False
@@ -241,7 +246,11 @@ class Processor:
         return blackword_set_present(self.discord_config.get("blackword_sets", [[""]]), self.text)
 
     def attach_media(self):
+        
         global attachedPictureType
+        global attachedPictures
+        global attachedVideo
+        
         if "retweeted_status" in self.status_tweet:
             if (
                 "extended_tweet" in self.status_tweet["retweeted_status"]
@@ -254,10 +263,12 @@ class Processor:
                         attachedPictures.append(media["media_url_https"]),
                         attachedPictureType = "photo"
                     elif media["type"] == "video":
-                        attachedPictures.append(media["expanded_url"]),  
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])  
                         attachedPictureType = "video"
                     elif media["type"] == "animated_gif":
-                        attachedPictures.append(media["expanded_url"]),  
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])  
                         attachedPictureType = "gif"
 
             if "media" in self.status_tweet["retweeted_status"]["entities"]:
@@ -266,10 +277,12 @@ class Processor:
                         attachedPictures.append(media["media_url_https"]),
                         attachedPictureType = "photo"
                     elif media["type"] == "video":
-                        attachedPictures.append(media["expanded_url"]),  
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])  
                         attachedPictureType = "video"
                     elif media["type"] == "animated_gif":
-                        attachedPictures.append(media["expanded_url"]),  
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])  
                         attachedPictureType = "gif"
 
             if (
@@ -281,10 +294,12 @@ class Processor:
                         attachedPictures.append(media["media_url_https"]),
                         attachedPictureType = "photo"
                     elif media["type"] == "video":
-                        attachedPictures.append(media["expanded_url"]),  
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])  
                         attachedPictureType = "video"
                     elif media["type"] == "animated_gif":
-                        attachedPictures.append(media["expanded_url"]),  
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])  
                         attachedPictureType = "gif"
         else:
             if (
@@ -296,10 +311,12 @@ class Processor:
                         attachedPictures.append(media["media_url_https"]),
                         attachedPictureType = "photo"
                     elif media["type"] == "video":
-                        attachedPictures.append(media["expanded_url"]),  
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])  
                         attachedPictureType = "video"
                     elif media["type"] == "animated_gif":
-                        attachedPictures.append(media["expanded_url"]),  
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])  
                         attachedPictureType = "gif"
 
             if "media" in self.status_tweet["entities"]:
@@ -308,10 +325,12 @@ class Processor:
                         attachedPictures.append(media["media_url_https"]),
                         attachedPictureType = "photo"
                     elif media["type"] == "video":
-                        attachedPictures.append(media["expanded_url"]),  
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])  
                         attachedPictureType = "video"
                     elif media["type"] == "animated_gif":
-                        attachedPictures.append(media["expanded_url"]),  
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])  
                         attachedPictureType = "gif"
 
             if (
@@ -323,10 +342,12 @@ class Processor:
                         attachedPictures.append(media["media_url_https"]),
                         attachedPictureType = "photo"
                     elif media["type"] == "video":
-                        attachedPictures.append(media["expanded_url"]),  
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])
                         attachedPictureType = "video"
                     elif media["type"] == "animated_gif":
-                        attachedPictures.append(media["expanded_url"]),    
+                        attachedPictures.append(media["media_url_https"]),
+                        attachedVideo = (media["expanded_url"])
                         attachedPictureType = "gif"
 
     def create_embed(self):
@@ -359,62 +380,81 @@ class Processor:
         
     def send_message(self, wh_url):
         match = re.search(WH_REGEX, wh_url)
+        
         global attachedPictureType
+        global attachedPictures
+        global attachedVideo
 
         if match:
             webhook = Webhook.partial(
                 int(match.group("id")), match.group("token"), adapter=RequestsWebhookAdapter()
             )
             try:
+                #dirty debug
+                print("------------------------------")
+                print("Variable check before sending:")
+                print("------------------------------")
                 print("pictures found: ", len(attachedPictures))
+                print("pictureType set to: ", attachedPictureType)
+                print("attachedVideo: ", attachedVideo)
+                print("------------------------------")
                 
-                # add first picture to the first tweet
                 if attachedPictureType == "photo":
-                    self.embed.set_image(url=attachedPictures[0]) # add first picture, if it is a picture, to first embed
+                    self.embed.set_image(url=attachedPictures[0])
                     
                 webhook.send( # send tweet
                     embed=self.embed, content=self.discord_config.get("custom_message", None),
                     )
                 
-                # single tweet with a gif or video, generally twitter only allows on of those for a tweet, so this should be enough to cover it
+                # single tweet with a gif or video, generally twitter only allows one of those for a tweet, so this should be enough to cover it
                 if attachedPictureType == "gif" or attachedPictureType == "video": 
-                    picEmbed = Embed( # initializing new embed, cause I didn't fine another way to clear the content
+                    picEmbed = Embed(
                         colour=self.discord_config.get("Color", random.choice(COLORS)),
+                        title="click here to view animated gif/video on Twitter",
+                        url=attachedVideo
                         )
-                    picEmbed.set_author(
-                        name="click here to view animated gif/video on Twitter",
-                        url=attachedPictures[0],
-                    ),   
                     picEmbed.set_image(url=attachedPictures[0]),
-                    webhook.send( # send pictures
+                    webhook.send(
                         embed=picEmbed,
                         )
                 
                 # check if there are more than 1 different pictures
-                if len(attachedPictures) == 0:
-                    print("no pictures attached")
-                    pass
-                elif len(attachedPictures) == 2 and attachedPictures[0] == attachedPictures[1]:
-                    print("two pictures attached, but they're both the same")
-                    pass
-                else:
-                    # Maybe the first picture is not always attached twice?!?
-                    if attachedPictures[0] == attachedPictures[1]: 
-                        print("first picture attached twice")
-                        start = 2
+                if len(attachedPictures) > 1:
+                    if len(attachedPictures) == 2 and attachedPictures[0] == attachedPictures[1]:
+                        print("two pictures attached, but they're both the same")
+                        pass
                     else:
-                        start = 1
-                
-                    for attachedPicture in attachedPictures[start:]: # skip first 2 pictures, cause twitter has the first picture attached twice
-                        picEmbed = Embed( # initializing new embed, cause I didn't fine another way to clear the content
-                            colour=self.discord_config.get("Color", random.choice(COLORS)),
-                            )
-                        picEmbed.set_image(url=attachedPicture),
-                        webhook.send( # send pictures
-                            embed=picEmbed,
-                            )
+                        
+                        if attachedPictures[0] == attachedPictures[1]: 
+                            print("first picture attached twice")
+                            start = 2
+                        else:
+                            print("first picture attached once")
+                            start = 1
+                                
+                        for attachedPicture in attachedPictures[start:]:
+                            time.sleep(1)
+                            picEmbed = Embed(
+                                colour=self.discord_config.get("Color", random.choice(COLORS)),
+                                )
+                            picEmbed.set_image(url=attachedPicture),
+                            webhook.send(
+                                embed=picEmbed,
+                                )
                     
-                attachedPictures.clear() # clear pictures
+                attachedPictures.clear() # clear pictures                        
+                attachedVideo = "empty" # reset attachedVideo to empty
+                attachedPictureType = "empty" # reset attachedPictureType to empty
+                
+                #dirtydebug
+                print("------------------------------")
+                print("Variable check after sending:")
+                print("------------------------------")
+                print("pictures found: ", len(attachedPictures))
+                print("pictureType set to: ", attachedPictureType)
+                print("attachedVideo: ", attachedVideo)
+                print("------------------------------")
+                    
             except discord.errors.NotFound as error:
                 print(
                     f"---------Error---------\n"
