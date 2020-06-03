@@ -52,7 +52,7 @@ COLORS = [
     0x005C73,
     0x7C29A6,
 ]
-WH_REGEX = r"discordapp\.com\/api\/webhooks\/(?P<id>\d+)\/(?P<token>.+)"
+WH_REGEX = r"discord(app)?\.com\/api\/webhooks\/(?P<id>\d+)\/(?P<token>.+)"
 
 attachedPictures = []
 attachedPictureType = "empty"
